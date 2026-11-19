@@ -1,0 +1,24 @@
+# Build files
+**/target/
+
+# Backup folders
+/paytrack-backup/
+**/.git-backup/
+
+# Sensitive configuration files
+**/application.properties
+**/application-local.properties
+.env
+.env.*
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# Operating system files
+.DS_Store
+Thumbs.db
+!customer-crud-gstin/src/main/resources/application.properties
+/customer-crud-gstin/postman/
+/customer-crud-gstin/.postman/
