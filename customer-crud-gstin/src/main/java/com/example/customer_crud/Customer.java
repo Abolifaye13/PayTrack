@@ -4,6 +4,7 @@ package com.example.customer_crud;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "customers")
@@ -31,6 +32,11 @@ public class Customer {
     @NotBlank(message = "Shipping address is required")
     @Column(nullable = false)
     private String shippingAddress;
+
+    @JsonIgnore
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "organisation_id", nullable = false)
+    private Organisation organisation;
 
     public Customer() {
     }
@@ -73,5 +79,13 @@ public class Customer {
 
     public void setShippingAddress(String shippingAddress) {
         this.shippingAddress = shippingAddress;
+    }
+
+    public Organisation getOrganisation() {
+        return organisation;
+    }
+
+    public void setOrganisation(Organisation organisation) {
+        this.organisation = organisation;
     }
 }
