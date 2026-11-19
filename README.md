@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 \# PayTrack
 
 
@@ -102,3 +103,7 @@ This repository combines two assessment projects into one organized repository f
 
 
 
+=======
+# PayTrack
+Java Spring Boot assessment projects – Spring Security and Customer CRUD GSTIN.
+>>>>>>> d19890d626e2d2daf6ae5e183ebdfe59862193f3
