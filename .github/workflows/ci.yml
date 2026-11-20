@@ -59,6 +59,10 @@ jobs:
       - name: Build and test PayTrack Spring Security
         run: bash mvnw -B clean verify
         working-directory: paytrack-spring-security
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/paytrack
+          SPRING_DATASOURCE_USERNAME: paytrack
+          SPRING_DATASOURCE_PASSWORD: paytrack123
 
       - name: Stop containers
         if: always()
