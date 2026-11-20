@@ -1,0 +1,52 @@
+name: PayTrack CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Validate Docker Compose
+        run: docker compose config -q
+
+      - name: Start PostgreSQL and Redis
+        run: docker compose up -d
+
+      - name: Verify containers are healthy
+        run: |
+          for i in {1..30}; do
+            if [ "$(docker inspect --format='{{.State.Health.Status}}' paytrack-postgres 2>/dev/null)" = "healthy" ] && \
+               [ "$(docker inspect --format='{{.State.Health.Status}}' paytrack-redis 2>/dev/null)" = "healthy" ]; then
+              echo "PostgreSQL and Redis are healthy"
+              exit 0
+            fi
+            sleep 5
+          done
+          docker compose ps
+          docker compose logs
+          exit 1
+
+      - name: Build and test Customer CRUD
+        run: bash customer-crud-gstin/mvnw -B -f customer-crud-gstin/pom.xml clean verify
+
+      - name: Build and test PayTrack Spring Security
+        run: bash paytrack-spring-security/mvnw -B -f paytrack-spring-security/pom.xml clean verify
+
+      - name: Stop containers
+        if: always()
+        run: docker compose down
