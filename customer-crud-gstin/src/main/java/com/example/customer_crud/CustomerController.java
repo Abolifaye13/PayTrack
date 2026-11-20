@@ -1,13 +1,15 @@
 
 package com.example.customer_crud;
 
+import com.example.customer_crud.repository.AppUserRepository;
 import com.example.customer_crud.repository.CustomerRepository;
-import jakarta.validation.Valid;
 
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -16,44 +18,85 @@ import java.util.List;
 public class CustomerController {
 
     private final CustomerRepository customerRepository;
+    private final AppUserRepository appUserRepository;
 
-    public CustomerController(CustomerRepository customerRepository) {
+    public CustomerController(
+            CustomerRepository customerRepository,
+            AppUserRepository appUserRepository) {
+
         this.customerRepository = customerRepository;
+        this.appUserRepository = appUserRepository;
     }
 
-    // ADMIN can create customers
+    // Get the logged-in user's organisation ID
+    private Long getOrganisationId(Authentication authentication) {
+
+        AppUser user = appUserRepository
+                .findByUsername(authentication.getName())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED, "User not found"));
+
+        return user.getOrganisation().getId();
+    }
+
+    // Create customer
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('ADMIN')")
-    public Customer createCustomer(@Valid @RequestBody Customer customer) {
+    public Customer createCustomer(
+            @Valid @RequestBody Customer customer,
+            Authentication authentication) {
+
+        Long organisationId = getOrganisationId(authentication);
+
         customer.setId(null);
+
+        Organisation organisation = new Organisation();
+        organisation.setId(organisationId);
+
+        customer.setOrganisation(organisation);
+
         return customerRepository.save(customer);
     }
 
-    // ADMIN and USER can view all customers
+    // Get all customers of logged-in user's organisation
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public List<Customer> getAllCustomers() {
-        return customerRepository.findAll();
+    public List<Customer> getAllCustomers(
+            Authentication authentication) {
+
+        Long organisationId = getOrganisationId(authentication);
+
+        return customerRepository.findByOrganisationId(organisationId);
     }
 
-    // ADMIN and USER can view a customer by ID
+    // Get customer by ID
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
-    public Customer getCustomerById(@PathVariable Long id) {
-        return customerRepository.findById(id)
+    public Customer getCustomerById(
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        Long organisationId = getOrganisationId(authentication);
+
+        return customerRepository
+                .findByIdAndOrganisationId(id, organisationId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Customer not found"));
     }
 
-    // Only ADMIN can update customers
+    // Update customer
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public Customer updateCustomer(
             @PathVariable Long id,
-            @Valid @RequestBody Customer customer) {
+            @Valid @RequestBody Customer customer,
+            Authentication authentication) {
 
-        Customer existingCustomer = customerRepository.findById(id)
+        Long organisationId = getOrganisationId(authentication);
+
+        Customer existingCustomer = customerRepository
+                .findByIdAndOrganisationId(id, organisationId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Customer not found"));
 
@@ -65,16 +108,21 @@ public class CustomerController {
         return customerRepository.save(existingCustomer);
     }
 
-    // Only ADMIN can delete customers
+    // Delete customer
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteCustomer(@PathVariable Long id) {
-        if (!customerRepository.existsById(id)) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "Customer not found");
-        }
+    public void deleteCustomer(
+            @PathVariable Long id,
+            Authentication authentication) {
 
-        customerRepository.deleteById(id);
+        Long organisationId = getOrganisationId(authentication);
+
+        Customer customer = customerRepository
+                .findByIdAndOrganisationId(id, organisationId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Customer not found"));
+
+        customerRepository.delete(customer);
     }
 }

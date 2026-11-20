@@ -2,9 +2,12 @@ name: PayTrack CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - "feature/**"
   pull_request:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   build-and-test:
@@ -20,6 +23,14 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
+          cache-dependency-path: |
+            customer-crud-gstin/pom.xml
+            paytrack-spring-security/pom.xml
+
+      - name: Set up Maven wrapper permissions
+        run: |
+          chmod +x customer-crud-gstin/mvnw
+          chmod +x paytrack-spring-security/mvnw
 
       - name: Validate Docker Compose
         run: docker compose config -q
@@ -42,10 +53,12 @@ jobs:
           exit 1
 
       - name: Build and test Customer CRUD
-        run: bash customer-crud-gstin/mvnw -B -f customer-crud-gstin/pom.xml clean verify
+        run: bash mvnw -B clean verify
+        working-directory: customer-crud-gstin
 
       - name: Build and test PayTrack Spring Security
-        run: bash paytrack-spring-security/mvnw -B -f paytrack-spring-security/pom.xml clean verify
+        run: bash mvnw -B clean verify
+        working-directory: paytrack-spring-security
 
       - name: Stop containers
         if: always()
